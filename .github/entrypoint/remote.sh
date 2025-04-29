@@ -8,7 +8,7 @@ token=$(curl -s -H "Content-Type: application/json" -X POST \
 
 # 2. Get manifests with tags
 response=$(curl -s -H "Authorization: JWT $token" \
-  "https://hub.docker.com/v2/repositories/$IMAGE_NAME/tags/?page_size=$DELETE_LIMIT&ordering=last_updated")
+  "https://hub.docker.com/v2/repositories/$IMAGE_NAME/tags/?page_size=$MAX_DELETIONS&ordering=last_updated")
 
 # 3. Process deletions
 deleted=0
@@ -26,7 +26,7 @@ echo "$response" | jq -c '.results[]' | while read -r item; do
       "https://hub.docker.com/v2/namespaces/${IMAGE_NAME%/*}/repositories/${IMAGE_NAME#*/}/tags/$tag"
   fi
   
-  # Delete the actual image manifest (THIS WAS MISSING BEFORE)
+  # Delete the actual image manifest
   echo "  🖼️ Deleting image manifest..."
   status=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
     -H "Authorization: JWT $token" \
@@ -41,7 +41,7 @@ echo "$response" | jq -c '.results[]' | while read -r item; do
   fi
   
   sleep 2
-  [ $deleted -ge $DELETE_LIMIT ] && break
+  [ $deleted -ge $MAX_DELETIONS ] && break
 done
 
 echo "Result: Deleted $deleted images (tags AND manifests)"
